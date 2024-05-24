@@ -1,32 +1,144 @@
 from random import randint
 
+import matplotlib.pyplot as plt
 
-class BLA():
-    def __init__(self, x, y, current_fuel, fuel_capacity):
+
+class Visualizer:
+    def __init__(self, blas, targets):
+        self.blas = blas
+        self.targets = targets
+
+    def draw(self):
+        fig, ax = plt.subplots(figsize=(graph_screen_size / 96, graph_screen_size / 96))
+        ax.set_xlim([min_field_size_x, max_field_size_x])
+        ax.set_ylim([min_field_size_y, max_field_size_y])
+
+        # Отрисовка BLAs как голубых прямоугольников
+        for bla in self.blas:
+            rect = self.rectangle_with_center(bla.x, bla.y)
+            ax.add_patch(rect)
+
+        # Отрисовка целей как треугольников, цвет зависит от type
+        color = ['black', 'yellow', 'red']
+        for target in self.targets:
+            triangle = self.draw_triangle_with_center(target.x, target.y, color=color[target.type - 1])
+            ax.add_patch(triangle)
+
+        plt.show()
+
+    def rectangle_with_center(self, x, y, color='blue'):
+        """
+        Рисует прямоугольник с центром в точке (x, y).
+        :param x: Координата x центра прямоугольника.
+        :param y: Координата y центра прямоугольника.
+        :param color: Цвет прямоугольника
+        """
+
+        # Расчет позиции верхнего левого угла прямоугольника
+        left = x - fig_size / 2
+        top = y - fig_size / 2
+
+        # Создание прямоугольника
+        return plt.Rectangle((left, top), fig_size, fig_size, fill=color, edgecolor=color)
+
+    def draw_triangle_with_center(self, x, y, color='red'):
+        """
+        Рисует треугольник с центром в точке (x, y).
+
+        :param x: Координата x центра треугольника.
+        :param y: Координата y центра треугольника.
+        :param color: Цвет треугольника.
+        """
+
+        # Определяем вершины треугольника
+        vertices = [(x - fig_size / 2, y - fig_size / 2),  # Левый нижний
+                    (x + fig_size / 2, y - fig_size / 2),  # Правый нижний
+                    (x, y + fig_size / 2)]  # Центр
+
+        # Создаем треугольник
+        return plt.Polygon(vertices, closed=True, fill=True, color=color)
+
+
+class BLA:
+    def __init__(self, x, y, current_fuel):
         self.x = x
         self.y = y
+        self.radius_vision = standard_radius_vision
+
+        self.visible_targets = []
+        self.visible_BLAs = []
+
         self.fuel = current_fuel
-        self.fuel_capacity = fuel_capacity
-        self.targets = []
+        self.fuel_capacity = standard_fuel_capacity
+
+    def distance_to(self, target):
+        return ((self.x - target.x) ** 2 + (self.y - target.y) ** 2) ** 0.5
+
+    def find_visible_objects(self, list_objects):
+        visible_objects = [target for target in list_objects if self.distance_to(target) <= self.radius_vision]
+        return visible_objects
+
+    def update_visible_objects(self):
+        self.visible_targets.clear()
+        self.visible_BLAs.clear()
+
+        self.visible_targets = self.find_visible_objects(list_targets)
+        self.visible_BLAs = self.find_visible_objects(list_BLAs)
 
 
-class Target():
+class Target:
     def __init__(self, x, y, n):
         self.x = x
         self.y = y
-        self.type = 0.5 * (n - 1)
+        self.type = n
+        self.worth = 0.5 * (n - 1)
 
 
-def create_BLAs(count):
-    list_BLAs = []
+def create_blas(count):
+    list_of_blas = []
     for i in range(count):
-        list_BLAs.append(BLA(randint(1, field_size_x), randint(1, field_size_y), randint(1, standard_fuel_capacity),
-                             standard_fuel_capacity))
-    return list_BLAs
+        x_cord = randint(min_field_size_x, max_field_size_x)
+        y_cord = randint(min_field_size_y, max_field_size_y)
+        fuel = randint(1, standard_fuel_capacity)
+
+        list_of_blas.append(BLA(x_cord, y_cord, fuel))
+    return list_of_blas
+
+
+def create_targets(count):
+    list_of_targets = []
+    for i in range(count):
+        x_cord = randint(min_field_size_x, max_field_size_x)
+        y_cord = randint(min_field_size_y, max_field_size_y)
+        target_type = randint(1, 3)
+
+        list_of_targets.append(Target(x_cord, y_cord, target_type))
+    return list_of_targets
 
 
 if __name__ == '__main__':
+    # параметры для БЛА
     standard_fuel_capacity = 100
-    field_size_x = 1000
-    field_size_y = 1000
-    print(randint(1, 3))
+    standard_radius_vision = 200
+
+    # размер окна с графиком
+    graph_screen_size = 800
+
+    # ограничения размера оси графиков
+    max_field_size_x = 1000
+    min_field_size_x = 0
+    max_field_size_y = 1000
+    min_field_size_y = 0
+
+    # параметры размеров фигур на плоскости
+    fig_zoom = 50
+    fig_size = (((max_field_size_x - min_field_size_x) + (max_field_size_y - min_field_size_y)) / 2 / fig_zoom)
+    # кол-во БЛА и целей
+    count_targets = 20
+    count_blas = 5
+
+    list_BLAs = create_blas(count_blas)
+    list_targets = create_targets(count_targets)
+
+    visualizer = Visualizer(list_BLAs, list_targets)
+    visualizer.draw()
