@@ -13,16 +13,19 @@ class Visualizer:
         ax.set_xlim([min_field_size_x, max_field_size_x])
         ax.set_ylim([min_field_size_y, max_field_size_y])
 
-        # Отрисовка BLAs как голубых прямоугольников
-        for bla in self.blas:
-            rect = self.rectangle_with_center(bla.x, bla.y)
-            ax.add_patch(rect)
-
         # Отрисовка целей как треугольников, цвет зависит от type
-        color = ['black', 'yellow', 'red']
+        color = ['black', 'orange', 'red']
         for target in self.targets:
             triangle = self.draw_triangle_with_center(target.x, target.y, color=color[target.type - 1])
             ax.add_patch(triangle)
+
+        # Отрисовка BLAs как голубых прямоугольников
+        for bla in self.blas:
+            rect = self.rectangle_with_center(bla.x, bla.y)
+            circ = plt.Circle((bla.x, bla.y), bla.radius_vision, fill=None, linestyle='--')
+            plt.text(bla.x, bla.y + fig_size, f'{bla.index}')
+            ax.add_patch(circ)
+            ax.add_patch(rect)
 
         plt.show()
 
@@ -60,7 +63,9 @@ class Visualizer:
 
 
 class BLA:
-    def __init__(self, x, y, current_fuel):
+    def __init__(self, x, y, current_fuel, index):
+        self.index = index
+
         self.x = x
         self.y = y
         self.radius_vision = standard_radius_vision
@@ -101,7 +106,7 @@ def create_blas(count):
         y_cord = randint(min_field_size_y, max_field_size_y)
         fuel = randint(1, standard_fuel_capacity)
 
-        list_of_blas.append(BLA(x_cord, y_cord, fuel))
+        list_of_blas.append(BLA(x_cord, y_cord, fuel, i + 1))
     return list_of_blas
 
 
@@ -115,11 +120,48 @@ def create_targets(count):
         list_of_targets.append(Target(x_cord, y_cord, target_type))
     return list_of_targets
 
+def generate_matrices(N, M):
+    def is_valid(matrix, row, col):
+        # Проверяем строку
+        if sum(matrix[row][:]) == 1:
+            return False
+
+        # Проверяем столбец
+        if sum(matrix[:][col]) == 1:
+            return False
+
+        return True
+
+    def recursive_generate(matrix, row, matrices):
+        if row == N:
+            # Когда все строки обработаны, добавляем текущую матрицу в список
+            matrices.append([row[:] for row in matrix])
+            return
+
+        # Пробуем разместить единицу в каждом столбце текущей строки
+        for col in range(M):
+            if is_valid(matrix, row, col):
+                matrix[row][col] = 1
+                recursive_generate(matrix, row + 1, matrices)
+                matrix[row][col] = 0  # откат изменений
+
+        # Также рассматриваем вариант без единицы в текущей строке
+        recursive_generate(matrix, row + 1, matrices)
+
+    # Создаем пустую матрицу
+    matrix = [[0] * M for _ in range(N)]
+    matrices = []
+    # Запускаем рекурсивную генерацию с первой строки
+    recursive_generate(matrix, 0, matrices)
+    return matrices
+
+
+
 
 if __name__ == '__main__':
     # параметры для БЛА
     standard_fuel_capacity = 100
-    standard_radius_vision = 200
+    standard_radius_vision = 400
 
     # размер окна с графиком
     graph_screen_size = 800
@@ -142,3 +184,15 @@ if __name__ == '__main__':
 
     visualizer = Visualizer(list_BLAs, list_targets)
     visualizer.draw()
+
+    # Пример использования:
+    N = 3  # количество строк
+    M = 3  # количество столбцов
+    matrices = generate_matrices(N, M)
+
+    # Вывод всех матриц
+    for idx, matrix in enumerate(matrices):
+        print(f"Matrix {idx + 1}:")
+        for row in matrix:
+            print(row)
+        print('\n')
