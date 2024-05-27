@@ -195,4 +195,4 @@ if __name__ == '__main__':
         print(f"Matrix {idx + 1}:")
         for row in matrix:
             print(row)
-        print()
+        print('\n')
