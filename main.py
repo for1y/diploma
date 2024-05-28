@@ -2,12 +2,13 @@ import copy
 from random import randint
 
 import matplotlib.pyplot as plt
+from numba import jit
 
 
 class Visualizer:
     def __init__(self, blas, targets):
-        self.blas = blas
-        self.targets = targets
+        self.blas: list[BLA] = blas
+        self.targets: list[Target] = targets
 
     def draw(self):
         fig, ax = plt.subplots(figsize=(graph_screen_size / 96, graph_screen_size / 96))
@@ -18,7 +19,7 @@ class Visualizer:
         color = ['black', 'orange', 'red']
         for target in self.targets:
             triangle = self.draw_triangle_with_center(target.x, target.y, color=color[target.type - 1])
-            plt.text(target.x, target.y + fig_size, f't:{target.ind}', horizontalalignment='center')
+            plt.text(target.x, target.y + fig_size, f't:{target.id}', horizontalalignment='center')
             ax.add_patch(triangle)
 
         # Отрисовка BLAs как голубых прямоугольников
@@ -31,7 +32,7 @@ class Visualizer:
             if bla_target:
                 plt.plot([bla.x, bla_target.x], [bla.y, bla_target.y])
 
-            plt.text(bla.x, bla.y + fig_size, f'b:{bla.ind}')
+            plt.text(bla.x, bla.y + fig_size, f'b:{bla.id}')
             ax.add_patch(circ)
             ax.add_patch(rect)
 
@@ -72,32 +73,34 @@ class Visualizer:
 
 class Target:
     def __init__(self, x, y, n, index):
-        self.ind = index
-        self.x = x
-        self.y = y
-        self.type = n
-        self.worth = 0.5 * (n - 1)
+        self.id: int = index
+        self.x: int = x
+        self.y: int = y
+        self.type: int = n
+        self.worth: float = 0.5 * (n - 1)
 
 
 class BLA:
     def __init__(self, x, y, current_fuel, index):
-        self.ind = index
+        self.id: int = index
 
-        self.x = x
-        self.y = y
-        self.visability_radius = standard_radius_vision
+        self.x: int = x
+        self.y: int = y
+        self.visability_radius: int = standard_radius_vision
 
-        self.visible_targets = []
-        self.visible_BLAs = []
+        self.visible_targets: list[Target] = []
+        self.visible_BLAs: list[BLA] = []
 
-        self.fuel = current_fuel
-        self.fuel_capacity = standard_fuel_capacity
+        self.fuel: int = current_fuel
+        self.fuel_capacity: int = standard_fuel_capacity
+
 
     def win_probability(self, target: Target):
         distance = self.distance_to(target)
         sij = distance / self.visability_radius
         rho = max(0.33, 1 - sij)
         cij = rho * (target.worth - sij)
+        # print(f'bla_id:{self.id} \t with \t t_id:{target.id} have {cij}')
         return cij
 
     def distance_to(self, target: Target):
@@ -115,13 +118,14 @@ class BLA:
         self.visible_targets = self.find_visible_objects(list_targets)
         self.visible_BLAs = self.find_visible_objects(list_BLAs)
 
+
     def find_general_target(self) -> Target or None:
-        rows = self.visible_BLAs
+        rows: list[BLA] = self.visible_BLAs
         rows.insert(0, self)
-        cols = self.visible_targets
+        cols: list[Target] = self.visible_targets
         matrices = generate_matrices(len(rows), len(cols) + 1)
-        max_sum_win_probability = 0
-        index_max_worth_matrix = 0
+        max_sum_win_probability: float = 0
+        index_max_worth_matrix: int = 0
 
         for index_m, matrix in enumerate(matrices):
             sum_win_probability = 0
@@ -143,32 +147,39 @@ class BLA:
 
                         target = cols[col_index]
                         win_probability = bla.win_probability(target)
+                        # print(f'for bla {self.id}:--> bla_id:{bla.id} \t with \t t_id:{target.id} have {win_probability}')
                         sum_win_probability += win_probability
 
                 if sum_win_probability > max_sum_win_probability:
                     max_sum_win_probability = sum_win_probability
                     index_max_worth_matrix = index_m
         general_target_index = matrices[index_max_worth_matrix][0].index(1)
-        print(f'bla:{self.ind} :\t: {self.fuel} :\t: {max_sum_win_probability}')
+
         if general_target_index == len(cols):
+            print(f'--------------------------------------------------------------')
+            print(f'bla:{self.id} :\t: {self.fuel} :\t: {max_sum_win_probability} :\t: dont attack anywhere')
+            print(f'--------------------------------------------------------------')
             return None
         else:
             general_target = cols[general_target_index]
+            print(f'--------------------------------------------------------------')
+            print(f'bla:{self.id} :\t: {self.fuel} :\t: {max_sum_win_probability} :\t: attack on {general_target.id}')
+            print(f'--------------------------------------------------------------')
             return general_target
 
 
-def create_blas(count):
+def create_blas(count: int) -> list[BLA]:
     list_of_blas = []
     for i in range(count):
         x_cord = randint(min_field_size_x, max_field_size_x)
         y_cord = randint(min_field_size_y, max_field_size_y)
         fuel = randint(1, standard_fuel_capacity)
 
-        list_of_blas.append(BLA(x_cord, y_cord, fuel, i + 1))
+        list_of_blas.append(BLA(x_cord, y_cord, 5, i + 1))
     return list_of_blas
 
 
-def create_targets(count):
+def create_targets(count: int) -> list[Target]:
     list_of_targets = []
     for i in range(count):
         x_cord = randint(min_field_size_x, max_field_size_x)
@@ -179,18 +190,19 @@ def create_targets(count):
     return list_of_targets
 
 
-def generate_matrices(N, M) -> list:
+
+def generate_matrices(N: int, M: int) -> list[list[int]]:
     matrices = []
 
-    def is_valid(matrix, row, col, N, M):
+    def is_valid(matrix, row: int, col: int):
         # Проверяем строку
-        sum_row = 0
+        sum_row: int = 0
         for i in range(M):
             sum_row += matrix[row][i]
             if sum_row == 1:
                 return False
         # Проверяем столбец
-        sum_col = 0
+        sum_col: int = 0
         for i in range(N):
             if col != M - 1:
                 sum_col += matrix[i][col]
@@ -207,7 +219,7 @@ def generate_matrices(N, M) -> list:
 
         # Пробуем разместить единицу в каждом столбце текущей строки
         for col in range(M):
-            if is_valid(matrix, row, col, N, M):
+            if is_valid(matrix, row, col):
                 matrix[row][col] = 1
                 recursive_generate(matrix, row + 1)
                 matrix[row][col] = 0  # откат изменений
@@ -222,7 +234,7 @@ def generate_matrices(N, M) -> list:
 if __name__ == '__main__':
     # параметры для БЛА
     standard_fuel_capacity = 100
-    standard_radius_vision = 400
+    standard_radius_vision = 500
 
     # размер окна с графиком
     graph_screen_size = 800
@@ -236,9 +248,10 @@ if __name__ == '__main__':
     # параметры размеров фигур на плоскости
     fig_zoom = 50
     fig_size = (((max_field_size_x - min_field_size_x) + (max_field_size_y - min_field_size_y)) / 2 / fig_zoom)
+
     # кол-во БЛА и целей
-    count_targets = 5
-    count_blas = 10
+    count_targets = 25
+    count_blas = 5
 
     list_BLAs = create_blas(count_blas)
     list_targets = create_targets(count_targets)
