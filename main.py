@@ -18,7 +18,7 @@ class Visualizer:
         color = ['black', 'orange', 'red']
         for target in self.targets:
             triangle = self.draw_triangle_with_center(target.x, target.y, color=color[target.type - 1])
-            plt.text(target.x, target.y + fig_size, f't:{target.index}')
+            plt.text(target.x, target.y + fig_size, f't:{target.ind}', horizontalalignment='center')
             ax.add_patch(triangle)
 
         # Отрисовка BLAs как голубых прямоугольников
@@ -27,11 +27,11 @@ class Visualizer:
 
             rect = self.rectangle_with_center(bla.x, bla.y)
             circ = plt.Circle((bla.x, bla.y), bla.visability_radius, fill=None, linestyle='--')
-            bla_target = bla.find_general_target
+            bla_target = bla.find_general_target()
             if bla_target:
                 plt.plot([bla.x, bla_target.x], [bla.y, bla_target.y])
 
-            plt.text(bla.x, bla.y + fig_size, f'b:{bla.index}')
+            plt.text(bla.x, bla.y + fig_size, f'b:{bla.ind}')
             ax.add_patch(circ)
             ax.add_patch(rect)
 
@@ -72,7 +72,7 @@ class Visualizer:
 
 class Target:
     def __init__(self, x, y, n, index):
-        self.index = index
+        self.ind = index
         self.x = x
         self.y = y
         self.type = n
@@ -81,7 +81,7 @@ class Target:
 
 class BLA:
     def __init__(self, x, y, current_fuel, index):
-        self.index = index
+        self.ind = index
 
         self.x = x
         self.y = y
@@ -115,7 +115,6 @@ class BLA:
         self.visible_targets = self.find_visible_objects(list_targets)
         self.visible_BLAs = self.find_visible_objects(list_BLAs)
 
-    @property
     def find_general_target(self) -> Target or None:
         rows = self.visible_BLAs
         rows.insert(0, self)
@@ -126,15 +125,22 @@ class BLA:
 
         for index_m, matrix in enumerate(matrices):
             sum_win_probability = 0
+            # print(f'matrix:{matrix}')
             for m_rows in matrix:
+                # print(f'm_rows::{m_rows}')
                 for m_col in m_rows:
-                    if m_col == 1 and m_rows.index(m_col) == len(cols) - 1:
+                    # print(f'm_col:{m_col}')
+                    if m_col == 1 and m_rows.index(m_col) == len(cols):
                         sum_win_probability += self.fuel / self.fuel_capacity
 
                     elif m_col == 1:
                         col_index = m_rows.index(m_col)
                         row_index = matrix.index(m_rows)
                         bla = rows[row_index]
+
+                        # print(m_rows)
+                        # print(f'cols:{cols}\t{col_index}\tlen(cols):{len(cols)}')
+
                         target = cols[col_index]
                         win_probability = bla.win_probability(target)
                         sum_win_probability += win_probability
@@ -142,9 +148,9 @@ class BLA:
                 if sum_win_probability > max_sum_win_probability:
                     max_sum_win_probability = sum_win_probability
                     index_max_worth_matrix = index_m
-
         general_target_index = matrices[index_max_worth_matrix][0].index(1)
-        if general_target_index == len(cols) - 1:
+        print(f'bla:{self.ind} :\t: {self.fuel} :\t: {max_sum_win_probability}')
+        if general_target_index == len(cols):
             return None
         else:
             general_target = cols[general_target_index]
@@ -210,7 +216,6 @@ def generate_matrices(N, M) -> list:
     matrix = [[0] * M for _ in range(N)]
     # Запускаем рекурсивную генерацию с первой строки
     recursive_generate(matrix, 0)
-    print('end')
     return matrices
 
 
@@ -233,7 +238,7 @@ if __name__ == '__main__':
     fig_size = (((max_field_size_x - min_field_size_x) + (max_field_size_y - min_field_size_y)) / 2 / fig_zoom)
     # кол-во БЛА и целей
     count_targets = 5
-    count_blas = 1
+    count_blas = 10
 
     list_BLAs = create_blas(count_blas)
     list_targets = create_targets(count_targets)
