@@ -52,3 +52,5 @@ for i, matrix in enumerate(matrices, start=1):
     for row in matrix:
         print(row)
     print()  # Отступ между матрицами
+
+

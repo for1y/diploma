@@ -93,12 +93,16 @@ class BLA:
         self.fuel: int = current_fuel
         self.fuel_capacity: int = standard_fuel_capacity
 
-    def win_probability(self, target: Target):
+    def win_probability(self, target: Target) -> float:
         distance = self.distance_to(target)
         sij = distance / self.visability_radius
-        rho = max(0.33, 1 - sij)
+
+        if target.type == 3:
+            rho = (-2 / 3 * sij + 1)
+        else:
+            rho = 1 / 3 * sij
+
         cij = rho * (target.worth - sij)
-        # print(f'bla_id:{self.id} \t with \t t_id:{target.id} have {cij}')
         return cij
 
     def distance_to(self, target: Target):
@@ -138,13 +142,13 @@ class BLA:
                         col_index: int = m_rows.index(m_col)
                         row_index: int = matrix.index(m_rows)
                         bla: BLA = rows[row_index]
+                        target: Target = cols[col_index]
+                        win_probability: float = bla.win_probability(target)
 
                         # print(m_rows)
                         # print(f'cols:{cols}\t{col_index}\tlen(cols):{len(cols)}')
-
-                        target: Target = cols[col_index]
-                        win_probability: float = bla.win_probability(target)
                         # print(f'for bla {self.id}:--> bla_id:{bla.id} \t with \t t_id:{target.id} have {win_probability}')
+
                         sum_win_probability += win_probability
 
                 if sum_win_probability > max_sum_win_probability:
@@ -172,7 +176,7 @@ def create_blas(count: int) -> list[BLA]:
         y_cord = randint(min_field_size_y, max_field_size_y)
         fuel = randint(1, standard_fuel_capacity)
 
-        list_of_blas.append(BLA(x_cord, y_cord, 5, i + 1))
+        list_of_blas.append(BLA(x_cord, y_cord, 0, i + 1))
     return list_of_blas
 
 
@@ -190,7 +194,7 @@ def create_targets(count: int) -> list[Target]:
 def generate_matrices(N: int, M: int) -> list[list[int]]:
     matrices = []
 
-    def is_valid(matrix, row: int, col: int):
+    def is_valid(matrix: list[int], row: int, col: int):
         # Проверяем строку
         sum_row: int = 0
         for i in range(M):
@@ -246,7 +250,7 @@ if __name__ == '__main__':
     fig_size = (((max_field_size_x - min_field_size_x) + (max_field_size_y - min_field_size_y)) / 2 / fig_zoom)
 
     # кол-во БЛА и целей
-    count_targets = 25
+    count_targets = 5
     count_blas = 10
 
     list_BLAs = create_blas(count_blas)
