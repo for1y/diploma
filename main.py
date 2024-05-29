@@ -2,7 +2,6 @@ import copy
 from random import randint
 
 import matplotlib.pyplot as plt
-from numba import jit
 
 
 class Visualizer:
@@ -94,7 +93,6 @@ class BLA:
         self.fuel: int = current_fuel
         self.fuel_capacity: int = standard_fuel_capacity
 
-
     def win_probability(self, target: Target):
         distance = self.distance_to(target)
         sij = distance / self.visability_radius
@@ -118,7 +116,6 @@ class BLA:
         self.visible_targets = self.find_visible_objects(list_targets)
         self.visible_BLAs = self.find_visible_objects(list_BLAs)
 
-
     def find_general_target(self) -> Target or None:
         rows: list[BLA] = self.visible_BLAs
         rows.insert(0, self)
@@ -128,7 +125,7 @@ class BLA:
         index_max_worth_matrix: int = 0
 
         for index_m, matrix in enumerate(matrices):
-            sum_win_probability = 0
+            sum_win_probability: float = 0
             # print(f'matrix:{matrix}')
             for m_rows in matrix:
                 # print(f'm_rows::{m_rows}')
@@ -138,22 +135,22 @@ class BLA:
                         sum_win_probability += self.fuel / self.fuel_capacity
 
                     elif m_col == 1:
-                        col_index = m_rows.index(m_col)
-                        row_index = matrix.index(m_rows)
-                        bla = rows[row_index]
+                        col_index: int = m_rows.index(m_col)
+                        row_index: int = matrix.index(m_rows)
+                        bla: BLA = rows[row_index]
 
                         # print(m_rows)
                         # print(f'cols:{cols}\t{col_index}\tlen(cols):{len(cols)}')
 
-                        target = cols[col_index]
-                        win_probability = bla.win_probability(target)
+                        target: Target = cols[col_index]
+                        win_probability: float = bla.win_probability(target)
                         # print(f'for bla {self.id}:--> bla_id:{bla.id} \t with \t t_id:{target.id} have {win_probability}')
                         sum_win_probability += win_probability
 
                 if sum_win_probability > max_sum_win_probability:
                     max_sum_win_probability = sum_win_probability
                     index_max_worth_matrix = index_m
-        general_target_index = matrices[index_max_worth_matrix][0].index(1)
+        general_target_index: int = matrices[index_max_worth_matrix][0].index(1)
 
         if general_target_index == len(cols):
             print(f'--------------------------------------------------------------')
@@ -161,7 +158,7 @@ class BLA:
             print(f'--------------------------------------------------------------')
             return None
         else:
-            general_target = cols[general_target_index]
+            general_target: Target = cols[general_target_index]
             print(f'--------------------------------------------------------------')
             print(f'bla:{self.id} :\t: {self.fuel} :\t: {max_sum_win_probability} :\t: attack on {general_target.id}')
             print(f'--------------------------------------------------------------')
@@ -188,7 +185,6 @@ def create_targets(count: int) -> list[Target]:
 
         list_of_targets.append(Target(x_cord, y_cord, target_type, i + 1))
     return list_of_targets
-
 
 
 def generate_matrices(N: int, M: int) -> list[list[int]]:
@@ -251,7 +247,7 @@ if __name__ == '__main__':
 
     # кол-во БЛА и целей
     count_targets = 25
-    count_blas = 5
+    count_blas = 10
 
     list_BLAs = create_blas(count_blas)
     list_targets = create_targets(count_targets)
